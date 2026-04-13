@@ -1,11 +1,15 @@
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-prices1 = pd.read_csv("C:\\Users\\sab06\\IMC Prosperity Tutorial\\prices_round_0_day_-1.csv", sep=";")
-prices2 = pd.read_csv("C:\\Users\\sab06\\IMC Prosperity Tutorial\\prices_round_0_day_-2.csv", sep=";")
-trades1 = pd.read_csv("C:\\Users\\sab06\\IMC Prosperity Tutorial\\trades_round_0_day_-1.csv", sep=";")
-trades2 = pd.read_csv("C:\\Users\\sab06\\IMC Prosperity Tutorial\\trades_round_0_day_-2.csv", sep=";")
+_DATA = Path(__file__).resolve().parent / "data"
+
+prices1 = pd.read_csv(_DATA / "day_minus_1_books.csv", sep=";")
+prices2 = pd.read_csv(_DATA / "day_minus_2_books.csv", sep=";")
+trades1 = pd.read_csv(_DATA / "day_minus_1_trades.csv", sep=";")
+trades2 = pd.read_csv(_DATA / "day_minus_2_trades.csv", sep=";")
 
 # mean_prices1 = [prices1["bid_price_1"].mean(), 
 #                 prices1["bid_price_2"].mean(), 
