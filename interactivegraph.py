@@ -13,6 +13,7 @@ to end server ctrl c in temrinal
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -20,7 +21,18 @@ import plotly.graph_objects as go
 from dash import Dash, Input, Output, callback, callback_context, dcc, html
 from plotly.subplots import make_subplots
 
-_DATA = Path(__file__).resolve().parent / "data"
+_DATA = Path(__file__).resolve().parent / "ROUND1"
+
+_DAY_RE = re.compile(r"day_(-?\d+)")
+
+
+def discover_sim_days() -> list[int]:
+    days: list[int] = []
+    for p in _DATA.glob("prices_*.csv"):
+        m = _DAY_RE.search(p.name)
+        if m:
+            days.append(int(m.group(1)))
+    return sorted(set(days))
 
 
 def _first_existing(paths: list[Path]) -> Path:
@@ -33,17 +45,21 @@ def _first_existing(paths: list[Path]) -> Path:
 def load_prices(day: int) -> pd.DataFrame:
     path = _first_existing(
         [
+            _DATA / f"prices_round_1_day_{day}.csv",
             _DATA / f"prices_round_0_day_{day}.csv",
             _DATA / f"day_minus_{-day}_books.csv",
         ]
     )
-    return pd.read_csv(path, sep=";")
+    df = pd.read_csv(path, sep=";")
+    df["spread"] = df["ask_price_1"] - df["bid_price_1"]
+    return df
 
 
 def load_trades(day: int) -> pd.DataFrame | None:
     try:
         path = _first_existing(
             [
+                _DATA / f"trades_round_1_day_{day}.csv",
                 _DATA / f"trades_round_0_day_{day}.csv",
                 _DATA / f"day_minus_{-day}_trades.csv",
             ]
@@ -59,6 +75,10 @@ def _product_column(trades: pd.DataFrame) -> str:
     if "product" in trades.columns:
         return "product"
     raise ValueError("Trades file needs a 'symbol' or 'product' column.")
+
+
+def _product_title(name: str) -> str:
+    return name.replace("_", " ").title()
 
 
 def decimate(df: pd.DataFrame, max_points: int) -> pd.DataFrame:
@@ -86,21 +106,21 @@ def build_figure(
     t_max = min(t_max, float(t_hi))
     window = book[(book["timestamp"] >= t_min) & (book["timestamp"] <= t_max)]
 
-    tomatoes = window[window["product"] == "TOMATOES"]
-    emeralds = window[window["product"] == "EMERALDS"]
+    pepper = window[window["product"] == "INTARIAN_PEPPER_ROOT"]
+    osmium = window[window["product"] == "ASH_COATED_OSMIUM"]
 
-    t_full = book[book["product"] == "TOMATOES"]
-    e_full = book[book["product"] == "EMERALDS"]
-    mean_src_t = window if means_use_window else t_full
-    mean_src_e = window if means_use_window else e_full
+    p_full = book[book["product"] == "INTARIAN_PEPPER_ROOT"]
+    o_full = book[book["product"] == "ASH_COATED_OSMIUM"]
+    mean_src_p = window if means_use_window else p_full
+    mean_src_o = window if means_use_window else o_full
 
-    t_bid_mean = mean_src_t["bid_price_1"].mean()
-    t_ask_mean = mean_src_t["ask_price_1"].mean()
-    e_bid_mean = mean_src_e["bid_price_1"].mean()
-    e_ask_mean = mean_src_e["ask_price_1"].mean()
+    p_bid_mean = mean_src_p["bid_price_1"].mean()
+    p_ask_mean = mean_src_p["ask_price_1"].mean()
+    o_bid_mean = mean_src_o["bid_price_1"].mean()
+    o_ask_mean = mean_src_o["ask_price_1"].mean()
 
-    tomatoes_p = decimate(tomatoes, max_points)
-    emeralds_p = decimate(emeralds, max_points)
+    pepper_p = decimate(pepper, max_points)
+    osmium_p = decimate(osmium, max_points)
 
     fig = make_subplots(
         rows=2,
@@ -108,8 +128,8 @@ def build_figure(
         shared_xaxes=True,
         vertical_spacing=0.06,
         subplot_titles=(
-            f"TOMATOES — day {day} (max {max_points} pts / product in view)",
-            f"EMERALDS — day {day}",
+            f"{_product_title('INTARIAN_PEPPER_ROOT')} — day {day} (max {max_points} pts / product in view)",
+            f"{_product_title('ASH_COATED_OSMIUM')} — day {day}",
         ),
     )
 
@@ -213,16 +233,16 @@ def build_figure(
             col=1,
         )
 
-    add_order_book(1, tomatoes_p, "TOM", t_bid_mean, t_ask_mean)
-    add_order_book(2, emeralds_p, "EME", e_bid_mean, e_ask_mean)
+    add_order_book(1, pepper_p, "IPR", p_bid_mean, p_ask_mean)
+    add_order_book(2, osmium_p, "ACO", o_bid_mean, o_ask_mean)
 
     trades = load_trades(day) if show_trades else None
     if trades is not None and not trades.empty:
         col = _product_column(trades)
         tw = trades[(trades["timestamp"] >= t_min) & (trades["timestamp"] <= t_max)]
         for row, prod, marker in (
-            (1, "TOMATOES", "circle"),
-            (2, "EMERALDS", "diamond"),
+            (1, "INTARIAN_PEPPER_ROOT", "circle"),
+            (2, "ASH_COATED_OSMIUM", "diamond"),
         ):
             sub = tw[tw[col] == prod]
             if sub.empty:
@@ -260,23 +280,30 @@ def build_figure(
 
 
 def main() -> None:
-    sample = load_prices(-1)
+    all_days = discover_sim_days()
+    if not all_days:
+        raise FileNotFoundError(f"No prices_*.csv files found in {_DATA}")
+
+    default_day = all_days[0]
+    sample = load_prices(default_day)
     t0 = float(sample["timestamp"].min())
     t1 = float(sample["timestamp"].max())
 
     app = Dash(__name__)
     app.title = "IMC Prosperity — interactive books"
 
+    day_options = [{"label": f"Day {d}", "value": d} for d in all_days]
+
     app.layout = html.Div(
         [
-            html.H3("Order book explorer"),
+            html.H3("Order book explorer (ROUND1)"),
             html.Div(
                 [
                     html.Label("Day "),
                     dcc.Dropdown(
                         id="day",
-                        options=[{"label": "Day -1", "value": -1}, {"label": "Day -2", "value": -2}],
-                        value=-1,
+                        options=day_options,
+                        value=default_day,
                         clearable=False,
                         style={"width": "200px", "display": "inline-block", "verticalAlign": "middle"},
                     ),
@@ -327,7 +354,10 @@ def main() -> None:
                 ],
                 style={"marginBottom": "8px"},
             ),
-            dcc.Graph(id="graph", figure=build_figure(-1, t0, t1, 3500, True, True, False, False)),
+            dcc.Graph(
+                id="graph",
+                figure=build_figure(default_day, t0, t1, 3500, True, True, False, False),
+            ),
             html.P(
                 "Tip: drag on the chart to zoom; double-click resets axes. "
                 "Bottom range slider scrubs time. Legend clicks hide/show series.",
