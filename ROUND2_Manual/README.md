@@ -139,5 +139,6 @@ ROUND2_Manual/
 ├── analyze_invest.py       # Python analysis + optimization
 ├── speed_distributions.png # Distribution visuals
 ├── pnl_sensitivity.png     # PnL sensitivity curves
+├── Ignore.txt              # Random thoughts and ideas
 └── README.md               # This file
 ```
