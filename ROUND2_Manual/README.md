@@ -49,7 +49,11 @@ Similar to Dist 2 but the **50–70% band is denser than 0–50%** — a partial
 
 > More competitive than Dist 2 but not a full GPT-style arms race.
 
-### Distribution 4 — Bimodal (Gemini)
+### Distribution 4 — Normal
+
+A normal distribution centered at **33.33%** (the even split) with standard deviation ~10%. Represents teams that rationally converge on a "fair" allocation but with natural spread around that anchor. An off-by-one spike at 34% from players trying to edge above the 33% Schelling point.
+
+### Distribution 5 — Bimodal (Gemini)
 
 A psychologically-shaped distribution with three zones:
 
@@ -60,13 +64,13 @@ A psychologically-shaped distribution with three zones:
 
 > Bidding exactly 50% lands in a massive rank collision but still nets a strong multiplier (~0.85) because so many others cluster there too.
 
-### Distribution 5 — Noisy (Claude)
+### Distribution 6 — Noisy (Claude)
 
 - **Spike at 0%:** ~9% of teams reason through the math and skip Speed.
 - **Core mass at 20–40%:** the hedgers (~57%).
 - **Exponential tail to 60+%:** the speed-dominant players (~34%).
 
-### Distribution 6 — Race (GPT)
+### Distribution 7 — Race (GPT)
 
 A full arms-race scenario. ~77% of all teams invest between **55–95%** in Speed.
 
@@ -81,9 +85,9 @@ A full arms-race scenario. ~77% of all teams invest between **55–95%** in Spee
 
 > Even investing 59% only yields a 0.34 speed multiplier. R and S are so starved that Net PnL collapses.
 
-### Distribution 7 — KDE Consensus
+### Distribution 8 — KDE Consensus
 
-A **Gaussian KDE** fitted to all 60,000 pooled samples from Distributions 1–6, then resampled to 10,000. Represents a "no strong prior" hedge across all models.
+A **Gaussian KDE** fitted to all 70,000 pooled samples from Distributions 1–7, then resampled to 10,000. Represents a "no strong prior" hedge — the expected distribution if all seven models are equally likely.
 
 > The smooth KDE curve is overlaid on the histogram in the visualization.
 
@@ -107,10 +111,11 @@ Grid search over all integer (r, s, v) with r + s + v ≤ 100. Optimization is f
 | Dist 1: Exponential | 9% | 22% | 69% | 0.816 | 125,356 | 75,356 |
 | Dist 2: Uniform (Low) | 15% | 46% | 39% | 0.580 | 224,335 | 174,335 |
 | Dist 3: Uniform (Race) | 16% | 48% | 36% | 0.466 | 192,309 | 142,309 |
-| **Dist 4: Bimodal (Gemini)** | **13%** | **37%** | **50%** | **0.850** | **251,752** | **201,752** |
-| Dist 5: Noisy (Claude) | 15% | 42% | 43% | 0.701 | 247,754 | 197,754 |
-| Dist 6: Race (GPT) | 11% | 30% | 59% | 0.340 | 76,815 | 26,815 |
-| Dist 7: KDE Consensus | 14% | 41% | 45% | 0.501 | 168,863 | 118,863 |
+| **Dist 4: Normal** | **14%** | **42%** | **44%** | **0.799** | **275,523** | **225,523** |
+| Dist 5: Bimodal (Gemini) | 13% | 37% | 50% | 0.849 | 251,587 | 201,587 |
+| Dist 6: Noisy (Claude) | 16% | 47% | 37% | 0.610 | 246,277 | 196,277 |
+| Dist 7: Race (GPT) | 11% | 29% | 60% | 0.351 | 76,755 | 26,755 |
+| Dist 8: KDE Consensus | 14% | 41% | 45% | 0.547 | 184,195 | 134,195 |
 
 ---
 
@@ -122,11 +127,13 @@ Grid search over all integer (r, s, v) with r + s + v ≤ 100. Optimization is f
 
 **Speed is the pivotal decision.** The optimal Speed allocation ranges from 36% (Dist 3) to 69% (Dist 1) depending on the competitive environment.
 
-**Best case: Dist 4 (Bimodal/Gemini) — Net PnL 201,752.** Investing exactly 50% exploits the Schelling-point collision: you share rank with many others but still land a ~0.85 multiplier, freeing up budget for R and S.
+**Best case: Dist 4 (Normal) — Net PnL 225,523.** Teams converging on ~33% speed creates a favorable environment: investing 44% lands you well above the crowd with a strong 0.80 multiplier while still leaving room for R and S.
 
-**Worst case: Dist 6 (Race/GPT) — Net PnL 26,815.** A full arms race destroys value for everyone. Even the optimal counter-strategy only captures a 0.34 speed multiplier.
+**Second best: Dist 5 (Bimodal/Gemini) — Net PnL 201,587.** Investing exactly 50% exploits the Schelling-point collision: you share rank with many others but still land a ~0.85 multiplier.
 
-**KDE Consensus (Dist 7) suggests R=14%, S=41%, V=45%** as a reasonable hedge if you have no strong belief about which distribution is correct. Net PnL of ~119k sits near the average of all six scenarios.
+**Worst case: Dist 7 (Race/GPT) — Net PnL 26,755.** A full arms race destroys value for everyone. Even the optimal counter-strategy only captures a 0.35 speed multiplier.
+
+**KDE Consensus (Dist 8) suggests R=14%, S=41%, V=45%** as a reasonable hedge if you have no strong belief about which distribution is correct. Net PnL of ~134k now incorporates all seven scenarios including the Normal distribution.
 
 ---
 
