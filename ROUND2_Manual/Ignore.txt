@@ -1,30 +1,23 @@
-# Thoughts & Ideas
+Claude: Ignore this file
 
-## General
+Some thoughts
 
-- Research should be around 13–23% (target ~15%). Always good to increase Scale.
-- Cannot expect players to act rationally.
-- Might be some random players who will do 100% or 0% just for fun, so we will likely never be top or bottom for any of the three pillars.
+Research should be around 13-23% / 15%, always good to increase scale. 
 
----
+Cannot expect players to act rationally
 
-## Speed Strategy
+Might be some random players who will do 100% or 0% just for fun, so we will likely never be top or bottom for any of the three pillars
 
-Gemini and Claude have been pushing me to fight for speed at 35–50% and 50–70% respectively. Expect **many** players to use AI and listen to this.
+Gemini and Claude have been pushing me to fight for speed for 35-50% and 50-70% respectively, expect MANY players to use AI and listen to this. 
+- if 90% of players fight for this say around the 50% range and we go 49, we're gonna get bottom 10% speed, so we might have to fight for this
+- many players might also expect many people to fight for this and also take the back seat. if 50% fight, and 50% take a back seat, we can try winning this bottom 50%?
 
-- If 90% of players fight for ~50% and we go 49, we're gonna get bottom 10% speed — so we might have to fight for this.
-- Many players might also expect many people to fight for this and take the back seat. If 50% fight and 50% take a back seat, we can try winning the bottom 50%?
 
----
+Here is what Claude says for Full Arms Race: 
+Full arms race: Everyone panics into speed. Mode near v=45–50. Widespread misallocation — being at v=0 here earns a ~0.3 multiplier but the best absolute PnL given what others waste. Mean speed ≈ 46%.
+- basically we should be invest very little in speed
 
-## Full Arms Race Scenarios
-
-**What Claude says:**
-> Full arms race: Everyone panics into speed. Mode near v=45–50. Widespread misallocation — being at v=0 here earns a ~0.3 multiplier but the best absolute PnL given what others waste. Mean speed ≈ 46%.
-
-- Basically we should invest very little in speed.
-
-**What Gemini says:**
-> Betting 0% on speed and getting 0.1 is significantly worse than betting 50% and getting 0.9. Scenario B absolutely crushes Scenario A, even though Scenario B sacrificed half their base stats to get there. The difference between a 0.1x multiplier and a 0.9x multiplier is mathematically a 900% difference, whereas stripping 50% out of your Scale/Research budget only reduces your base output by about 60%.
-
-- We should not invest 0%?
+However, Gemini says betting 0% on speed and getting 0.1 is significantly worse than betting 50% and getting 0.9
+Scenario B absolutely crushes Scenario A, even though Scenario B sacrificed half their base stats to get there. 
+The difference between a $0.1\times$ multiplier and a $0.9\times$ multiplier is mathematically a 900% difference, whereas stripping 50% out of your Scale/Research budget only reduces your base output by about 60%.
+- we should not invest 0??
