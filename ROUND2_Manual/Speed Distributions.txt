@@ -14,11 +14,15 @@ Distribution 3: Uniform distribution (Race)
 
 Lower uniform distribution from 0-50%, y to increase a little from 50-70%, and drop to almost 0 from 70-100%. 
 
-Distribution 4: Normal
+Distribution 4: Normal (10 std)
 
-Normal distribution centered around 33.33%
+Normal distribution centered around 33.33% (~10% standard deviation)
 
-Distribution 5: Bimodal distribution (Gemini)
+Distribution 5: Normal (15 std)
+
+Normal distribution centered around 33.33% (~15% standard deviation)
+
+Distribution 6: Bimodal distribution (Gemini)
 
 Instead of a smooth natural curve, expect a highly unnatural, psychological shape. It will likely look like a bimodal distribution (two distinct peaks of different sizes) heavily scarred by unnatural vertical spikes.
 
@@ -32,13 +36,13 @@ The Schelling Point Spikes: Piercing through that main bulge, you will see massi
 
 Because equal investments share the same rank, landing exactly on one of those Schelling points (like 50%) is highly volatile. You might end up tied with 15% of the player base, causing a massive rank collision.
 
-Distribution 6: Noisy (Claude)
+Distribution 7: Noisy (Claude)
 
 Expect a behaviorally-noisy distribution: a cluster at v=0 from players who either reason it through or just focus on R+S, a big mass between v=20–40 from players who "hedge," and a tail out to v=60+ from speed-dominant players. 
 The full arms race scenario is possible in a competitive tournament culture. 
 The low arms race scenario requires a level of coordination that's unrealistic without communication.
 
-Distribution 7: Race (GPT)
+Distribution 8: Race (GPT)
 
 Speed Range	% of Teams
 85–95	20–30%
@@ -48,4 +52,4 @@ Speed Range	% of Teams
 25–40	5–10%
 <25	~0–5%
 
-Distribution 8: KDE plot of the above distribution's speeds
+Distribution 9: KDE plot of the above distribution's speeds

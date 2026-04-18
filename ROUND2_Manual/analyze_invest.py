@@ -117,10 +117,16 @@ def gen_dist4():
     raw = np.random.normal(loc=33.33, scale=10, size=N_TEAMS * 2)
     raw = raw[(raw >= 0) & (raw <= 100)][:N_TEAMS]
     arr = np.clip(np.round(raw).astype(int), 0, 100)
-    # Off-by-one spike at 34 (edging above the 33.33% Schelling point)
     return add_offbyone_spikes(arr, [33], spike_frac=0.10)
 
 def gen_dist5():
+    """Normal distribution centered at 33.33%, std~15, truncated to [0,100]."""
+    raw = np.random.normal(loc=33.33, scale=15, size=N_TEAMS * 2)
+    raw = raw[(raw >= 0) & (raw <= 100)][:N_TEAMS]
+    arr = np.clip(np.round(raw).astype(int), 0, 100)
+    return add_offbyone_spikes(arr, [33], spike_frac=0.10)
+
+def gen_dist6():
     """Bimodal/Gemini: oblivious peak 0-10, dead zone 11-32, war-zone bulge 33-58.
     Schelling spikes at 33, 40, 50, 55 plus off-by-one edges at 34, 41, 51, 56."""
     speeds = []
@@ -142,10 +148,9 @@ def gen_dist5():
     speeds.extend(np.round(raw).astype(int))
 
     arr = np.clip(np.array(speeds, dtype=int), 0, 100)
-    # Off-by-one: players trying to edge above 0, 33, 40, 50, 55
     return add_offbyone_spikes(arr, [0, 33, 40, 50, 55], spike_frac=0.10)
 
-def gen_dist6():
+def gen_dist7():
     """Noisy/Claude: spike at 0, mass 20-40, exponential tail to 60+."""
     n_zero = int(N_TEAMS * 0.09)
     n_mid  = int(N_TEAMS * 0.57)
@@ -156,7 +161,7 @@ def gen_dist6():
     arr    = np.clip(np.round(raw).astype(int), 0, 100)
     return add_offbyone_spikes(arr, [0], spike_frac=0.15)
 
-def gen_dist7():
+def gen_dist8():
     """Race/GPT: heavy concentration 55-95%, inverse of typical distributions."""
     # From the table: 85-95=25%, 70-85=30%, 55-70=22%, 40-55=12%, 25-40=7%, <25=4%
     segments = [(85, 95, 0.25), (70, 85, 0.30), (55, 70, 0.22),
@@ -171,20 +176,20 @@ def gen_dist7():
     # Off-by-one near 50 and 0 (smaller effect here since most players are high)
     return add_offbyone_spikes(arr, [0, 50], spike_frac=0.10)
 
-# ── Generate all seven, then derive the 8th ──────────────────────────────────
+# ── Generate all eight, then derive the 9th ──────────────────────────────────
 
-COLORS = ['#1976D2', '#388E3C', '#E64A19', '#AD1457', '#7B1FA2', '#F57C00', '#00838F', '#C62828']
+COLORS = ['#1976D2', '#388E3C', '#E64A19', '#AD1457', '#6A1B9A', '#7B1FA2', '#F57C00', '#00838F', '#C62828']
 
 d1 = gen_dist1(); d2 = gen_dist2(); d3 = gen_dist3(); d4 = gen_dist4()
-d5 = gen_dist5(); d6 = gen_dist6(); d7 = gen_dist7()
+d5 = gen_dist5(); d6 = gen_dist6(); d7 = gen_dist7(); d8 = gen_dist8()
 
-def gen_dist8(all_seven):
+def gen_dist9(all_eight):
     """
-    KDE of the combined speeds from all 7 distributions.
-    Fit a gaussian_kde to the 70 000 pooled samples, then draw
+    KDE of the combined speeds from all 8 distributions.
+    Fit a gaussian_kde to the 80 000 pooled samples, then draw
     10 000 new integer samples from that smoothed distribution.
     """
-    pooled = np.concatenate(all_seven).astype(float)
+    pooled = np.concatenate(all_eight).astype(float)
     kde    = gaussian_kde(pooled, bw_method='scott')
     samples = []
     while len(samples) < N_TEAMS:
@@ -194,17 +199,18 @@ def gen_dist8(all_seven):
     arr = np.clip(np.round(np.array(samples[:N_TEAMS])).astype(int), 0, 100)
     return arr, kde
 
-d8, kde8 = gen_dist8([d1, d2, d3, d4, d5, d6, d7])
+d9, kde9 = gen_dist9([d1, d2, d3, d4, d5, d6, d7, d8])
 
 dists = [
     (d1, "Dist 1: Exponential"),
     (d2, "Dist 2: Uniform (Low)"),
     (d3, "Dist 3: Uniform (Race)"),
-    (d4, "Dist 4: Normal"),
-    (d5, "Dist 5: Bimodal (Gemini)"),
-    (d6, "Dist 6: Noisy (Claude)"),
-    (d7, "Dist 7: Race (GPT)"),
-    (d8, "Dist 8: KDE Consensus"),
+    (d4, "Dist 4: Normal (std=10)"),
+    (d5, "Dist 5: Normal (std=15)"),
+    (d6, "Dist 6: Bimodal (Gemini)"),
+    (d7, "Dist 7: Noisy (Claude)"),
+    (d8, "Dist 8: Race (GPT)"),
+    (d9, "Dist 9: KDE Consensus"),
 ]
 
 # ── Figure 1: Distribution visuals (3×3, last cell empty) ────────────────────
@@ -216,17 +222,18 @@ annot_data = [
     [(10, 0.55, "Very few\nat low %"), (70, 0.92, "Peak ~70%")],
     [(25, 0.88, "Uniform 0-50%"), (59, 0.65, "Slight drop"), (83, 0.25, "Near-zero")],
     [(25, 0.70, "Lower flat\n0-50%"), (60, 0.88, "Rises\n50-70%"), (83, 0.25, "Near-zero")],
-    [(33, 0.92, "Peak ~33%")],
+    [(33, 0.92, "Peak ~33%\nstd=10")],
+    [(33, 0.92, "Peak ~33%\nstd=15")],
     [(5, 0.92, "Oblivious"), (21, 0.40, "Dead\nzone"), (44, 0.70, "War-zone")],
     [(0, 0.88, "0% cluster"), (30, 0.78, "Core 20-40%"), (62, 0.45, "Tail 60+")],
     [(15, 0.40, "<25%:\n~4%"), (47, 0.55, "40-55%:\n~12%"), (77, 0.88, "55-95%:\n~77%")],
     [(50, 0.92, "Smoothed\nconsensus")],
 ]
 vline_data = [
-    [68], [], [50], [33], [33, 40, 50, 55], [], [55], [],
+    [68], [], [50], [33], [33], [33, 40, 50, 55], [], [55], [],
 ]
 offbyone_data = {
-    1: [1], 2: [1, 51], 3: [34], 4: [1, 34, 41, 51, 56], 5: [1], 6: [1, 51],
+    1: [1], 2: [1, 51], 3: [34], 4: [34], 5: [1, 34, 41, 51, 56], 6: [1], 7: [1, 51],
 }
 
 for idx, (dist, name) in enumerate(dists):
@@ -235,10 +242,10 @@ for idx, (dist, name) in enumerate(dists):
                            alpha=0.72, edgecolor='none', density=True)
     ymax = max(counts)
 
-    # Overlay KDE smooth curve on the 8th subplot
-    if idx == 7:
+    # Overlay KDE smooth curve on the 9th subplot
+    if idx == 8:
         x_smooth = np.linspace(0, 100, 500)
-        kde_vals  = kde8(x_smooth)
+        kde_vals  = kde9(x_smooth)
         ax.plot(x_smooth, kde_vals, color='black', lw=2.0, label='KDE curve')
         ax.legend(fontsize=9)
 
@@ -258,8 +265,7 @@ for idx, (dist, name) in enumerate(dists):
     for hv in offbyone_data.get(idx, []):
         ax.axvline(hv, color='gold', lw=1.2, linestyle='--', alpha=0.8)
 
-# Hide the unused 9th cell
-axes[2][2].set_visible(False)
+# All 9 cells used — nothing to hide
 
 plt.tight_layout()
 plt.savefig("speed_distributions.png", dpi=150, bbox_inches='tight')
@@ -313,7 +319,6 @@ print("=" * 90)
 fig, axes = plt.subplots(3, 3, figsize=(18, 16))
 fig.suptitle("Net PnL vs Speed Investment  (R and S fixed at their optimal values)",
              fontsize=14, fontweight='bold')
-axes[2][2].set_visible(False)
 
 for idx, res in enumerate(results):
     ax = axes[idx // 3][idx % 3]
