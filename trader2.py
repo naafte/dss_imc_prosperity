@@ -14,11 +14,11 @@ class Trader:
 
     PRODUCT = "ASH_COATED_OSMIUM"
     FAIR_VALUE = 10_000          # stable across all days, no drift
-    POSITION_LIMIT = 50          # adjust to actual competition limit
+    POSITION_LIMIT = 80          # adjust to actual competition limit
 
     PASSIVE_SPREAD = 3           # quote at FV±3, inside the ~16-unit market spread
     MAX_PASSIVE_SIZE = 15        # match typical book depth
-    AGGRESS_EDGE = 10            # take when best_ask < FV-10 or best_bid > FV+10
+    AGGRESS_EDGE = 10             # take when best_ask < FV-7 or best_bid > FV+7 (~1.4σ, same recovery rate as 10 but 3x more opportunities)
     MAX_AGGRESS_SIZE = 20        # how much to lift/hit per tick when aggressively taking
 
     def run(self, state: TradingState):
