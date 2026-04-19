@@ -21,7 +21,7 @@ import plotly.graph_objects as go
 from dash import Dash, Input, Output, callback, callback_context, dcc, html
 from plotly.subplots import make_subplots
 
-_DATA = Path(__file__).resolve().parent / "ROUND1"
+_DATA = Path("/Users/nathantran/Downloads/ROUND_2")
 
 _DAY_RE = re.compile(r"day_(-?\d+)")
 
@@ -45,6 +45,7 @@ def _first_existing(paths: list[Path]) -> Path:
 def load_prices(day: int) -> pd.DataFrame:
     path = _first_existing(
         [
+            _DATA / f"prices_round_2_day_{day}.csv",
             _DATA / f"prices_round_1_day_{day}.csv",
             _DATA / f"prices_round_0_day_{day}.csv",
             _DATA / f"day_minus_{-day}_books.csv",
@@ -59,6 +60,7 @@ def load_trades(day: int) -> pd.DataFrame | None:
     try:
         path = _first_existing(
             [
+                _DATA / f"trades_round_2_day_{day}.csv",
                 _DATA / f"trades_round_1_day_{day}.csv",
                 _DATA / f"trades_round_0_day_{day}.csv",
                 _DATA / f"day_minus_{-day}_trades.csv",
@@ -296,7 +298,7 @@ def main() -> None:
 
     app.layout = html.Div(
         [
-            html.H3("Order book explorer (ROUND1)"),
+            html.H3("Order book explorer (ROUND2)"),
             html.Div(
                 [
                     html.Label("Day "),
