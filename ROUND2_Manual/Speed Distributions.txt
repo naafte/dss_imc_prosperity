@@ -53,3 +53,15 @@ Speed Range	% of Teams
 <25	~0–5%
 
 Distribution 9: KDE plot of the above distribution's speeds
+
+Distribution 10 (Gemini) - Nathan: 
+
+A bimodal curve with a massive spike at 70–90% (risk-averters), a smaller hump at 33% (equal-splitters), and a sharp drop-off in the 10–25% range.
+
+Distribution 11 (Claude) - Nathan:
+
+A roughly normal distribution centered around 25–30% Speed investment, right-skewed by a small tail of Speed-gamblers, with the mass of players bunched between 15–35% Speed and most of the remaining budget split unevenly toward Research over Scale.
+
+Distrubtion 12 (GPT) - Nathan:
+
+The distribution will be heavily concentrated in the middle (Speed ≈ 5–15) with a smaller left tail of low-Speed players and a thinner right tail of high-Speed overinvestors.
