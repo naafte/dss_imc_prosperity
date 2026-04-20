@@ -16,84 +16,51 @@ Net PnL = Research(r%) × Scale(s%) × Speed(v%) − Budget_Used
 |---|---|---|
 | **Research** | `200,000 × ln(1+r) / ln(101)` | 0 → 200,000 (logarithmic) |
 | **Scale** | `7 × s / 100` | 0 → 7 (linear) |
-| **Speed** | Rank-based among all ~10,000 teams | 0.1 → 0.9 multiplier |
+| **Speed** | Rank-based among all ~6,000 teams | 0.1 → 0.9 multiplier |
 
 **Speed rank rules:** highest investment → 0.9 multiplier, lowest → 0.1, everyone else linearly interpolated. Equal investments share the same rank.
-
-**Key insight:** Research has heavy diminishing returns (log), Scale is linear, and Speed is a zero-sum rank race. This means:
-- Pouring too much into Research is wasteful past ~15–20%.
-- Scale absorbs leftover budget efficiently.
-- Speed is the strategic wildcard — its value depends entirely on what everyone else does.
 
 ---
 
 ## Speed Distribution Models
 
-Seven candidate distributions were modelled (~10,000 teams each). All speed percentages are integers. Peaks at round numbers (0%, 50%, etc.) also generate small spikes at +1% from players trying to edge above Schelling points.
+Five candidate distributions modelled (~6,000 teams each). All speed percentages are integers.
 
-### Distribution 1 — Exponential
+### Distribution 1 — GPT (Bimodal)
 
-Very few teams pick low percentages. Density rises exponentially, peaking around **70%**, then drops to near-zero from 70–100%.
+Two peaks: one around **5–20%** (players skipping the speed race) and one around **50–80%** (competitive players). Sparse from 61–81%, very few above 81%.
 
-> Most teams treat Speed as the dominant pillar and race to the top.
+### Distribution 2 — Normal (std=15)
 
-### Distribution 2 — Uniform (Low)
+Normal distribution centered at **33.33%**, standard deviation ~15%. 68% of teams fall between **18–48%**. Off-by-one spike at 34% from players edging above the 33% Schelling point.
 
-Roughly uniform from **0–50%**, a slight step down from 50–70%, near-zero above 70%.
+### Distribution 3 — Gemini
 
-> Teams hedge evenly across the lower half of the speed range.
+Clustered distribution with distinct density segments:
 
-### Distribution 3 — Uniform (Race)
-
-Similar to Dist 2 but the **50–70% band is denser than 0–50%** — a partial arms race where many teams pile into the mid-high range.
-
-> More competitive than Dist 2 but not a full GPT-style arms race.
-
-### Distribution 4 — Normal (std=10)
-
-A normal distribution centered at **33.33%** with standard deviation ~10%. Represents teams converging tightly on the "fair" even split. Off-by-one spike at 34% from players edging above the Schelling point. 68% of teams fall between **23–43%**.
-
-### Distribution 5 — Normal (std=15)
-
-Same center at **33.33%** but with standard deviation ~15% — a wider, flatter bell. Represents a more dispersed version of the same rational convergence. 68% of teams fall between **18–48%**, with meaningful mass reaching into the 50–60% range.
-
-### Distribution 6 — Bimodal (Gemini)
-
-A psychologically-shaped distribution with three zones:
-
-- **Oblivious peak (0–10%):** ~8% of teams ignored Speed entirely.
-- **Dead zone (11–32%):** very few bids — too weak to compete, too costly to waste.
-- **War-zone bulge (33–58%):** the dense majority, skewed left.
-  - **Schelling point spikes** at 33%, 40%, 50%, 55% — and off-by-one edges at 34%, 41%, 51%, 56%.
-
-> Bidding exactly 50% lands in a massive rank collision but still nets a strong multiplier (~0.85) because so many others cluster there too.
-
-### Distribution 7 — Noisy (Claude)
-
-- **Spike at 0%:** ~9% of teams reason through the math and skip Speed.
-- **Core mass at 20–40%:** the hedgers (~57%).
-- **Exponential tail to 60+%:** the speed-dominant players (~34%).
-
-### Distribution 8 — Race (GPT)
-
-A full arms-race scenario. ~77% of all teams invest between **55–95%** in Speed.
-
-| Speed Range | % of Teams |
+| Range | Density |
 |---|---|
-| 85–95% | ~25% |
-| 70–85% | ~30% |
-| 55–70% | ~22% |
-| 40–55% | ~12% |
-| 25–40% | ~7% |
-| < 25% | ~4% |
+| 0–25% | Small |
+| 26–36% | **Very large** |
+| 37–46% | Large |
+| 47–58% | Medium |
+| 59%+ | Small |
 
-> Even investing 59% only yields a 0.34 speed multiplier. R and S are so starved that Net PnL collapses.
+### Distribution 4 — Claude
 
-### Distribution 9 — KDE Consensus
+Low-speed-biased distribution:
 
-A **Gaussian KDE** fitted to all 80,000 pooled samples from Distributions 1–8, then resampled to 10,000. Represents a "no strong prior" hedge — the expected distribution if all eight models are equally likely.
+| Range | Share of teams |
+|---|---|
+| 0–5% | ~20% |
+| 5–10% | Near-zero |
+| 10–25% | ~45% |
+| 25–40% | ~22% |
+| 40%+ | ~8% outliers |
 
-> The smooth KDE curve is overlaid on the histogram in the visualization.
+### Distribution 5 — KDE Consensus
+
+Gaussian KDE fitted to Distributions 1–4 pooled, with **Normal (Dist 2) weighted at half** the other three. Resampled to 6,000 teams.
 
 ---
 
@@ -101,46 +68,38 @@ A **Gaussian KDE** fitted to all 80,000 pooled samples from Distributions 1–8,
 
 | File | Contents |
 |---|---|
-| `speed_distributions.png` | Histogram of each distribution with annotations and Schelling-point markers |
+| `speed_distributions.png` | 2×3 histogram grid (5 distributions + 1 blank) with annotations |
 | `pnl_sensitivity.png` | Net PnL vs Speed % for each distribution, with optimal Speed marked |
 
 ---
 
 ## Optimal Allocations
 
-Grid search over all integer (r, s, v) with r + s + v ≤ 100. Optimization is fast because Scale is linear in s — for any fixed (r, v), the optimal s is always a boundary value.
+Grid search over all integer (r, s, v) with r + s + v ≤ 100.
 
 | Distribution | Research % | Scale % | Speed % | Speed Mult | Gross PnL | Net PnL |
 |---|---|---|---|---|---|---|
-| Dist 1: Exponential | 9% | 22% | 69% | 0.816 | 125,356 | 75,356 |
-| Dist 2: Uniform (Low) | 15% | 46% | 39% | 0.580 | 224,335 | 174,335 |
-| Dist 3: Uniform (Race) | 16% | 48% | 36% | 0.466 | 192,309 | 142,309 |
-| **Dist 4: Normal (std=10)** | **14%** | **42%** | **44%** | **0.799** | **275,523** | **225,523** |
-| Dist 5: Normal (std=15) | 15% | 42% | 43% | 0.699 | 247,048 | 197,048 |
-| Dist 6: Bimodal (Gemini) | 13% | 37% | 50% | 0.850 | 251,658 | 201,658 |
-| Dist 7: Noisy (Claude) | 16% | 47% | 37% | 0.609 | 245,922 | 195,922 |
-| Dist 8: Race (GPT) | 14% | 39% | 47% | 0.237 | 75,969 | 25,969 |
-| Dist 9: KDE Consensus | 14% | 42% | 44% | 0.560 | 193,242 | 143,242 |
+| Dist 1: GPT (Bimodal) | 19% | 61% | 20% | 0.3248 | 180,050 | 130,050 |
+| Dist 2: Normal (std=15) | 15% | 42% | 43% | 0.6989 | 246,897 | 196,897 |
+| Dist 3: Gemini | 14% | 39% | 47% | 0.6929 | 222,002 | 172,002 |
+| **Dist 4: Claude** | **18%** | **57%** | **25%** | **0.6657** | **338,940** | **288,940** |
+| Dist 5: KDE Consensus | 16% | 46% | 38% | 0.5623 | 222,292 | 172,292 |
 
 ---
 
 ## Key Takeaways
 
-**Research stays low (9–16%) across all scenarios.** Log diminishing returns make investing beyond ~16% expensive relative to payoff.
+**Research stays low (14–19%).** Log diminishing returns make anything beyond ~19% inefficient.
 
-**Scale absorbs the non-Speed budget.** Since Scale is linear (no diminishing returns), every spare percent goes there.
+**Scale absorbs the non-Speed budget** (linear, no diminishing returns) — ranges 39–61% across scenarios.
 
-**Speed is the pivotal decision.** The optimal Speed allocation ranges from 36% (Dist 3) to 69% (Dist 1) depending on the competitive environment.
+**Speed is the pivotal decision** — optimal ranges from 20% (GPT) to 47% (Gemini).
 
-**Best case: Dist 4 (Normal std=10) — Net PnL 225,523.** Teams tightly converging on ~33% speed lets you invest 44% and land well above the crowd with a strong 0.80 multiplier.
+**Best case: Dist 4 (Claude) — Net PnL 288,940.** Most players stay under 25%; investing 25% yourself tops most of the crowd with a 0.67 multiplier while freeing 57% for Scale.
 
-**Dist 5 (Normal std=15) — Net PnL 197,048.** The wider spread dilutes the advantage — more teams reach into the 40–50% range, compressing your speed multiplier to 0.70.
+**Worst case: Dist 1 (GPT Bimodal) — Net PnL 130,050.** The second peak at ~56% means even 20% Speed is outranked by half the field (0.32 multiplier). Counter-strategy: abandon Speed, maximize Scale.
 
-**Dist 6 (Bimodal/Gemini) — Net PnL 201,658.** Investing exactly 50% exploits the Schelling-point collision for a ~0.85 multiplier.
-
-**Worst case: Dist 8 (Race/GPT) — Net PnL 25,969.** A full arms race destroys value for everyone. Even the optimal counter-strategy only captures a 0.24 speed multiplier.
-
-**KDE Consensus (Dist 9) suggests R=14%, S=42%, V=44%** as a reasonable hedge across all eight scenarios. Net PnL of ~143k.
+**KDE Consensus (Dist 5, Normal half-weighted) — R=16%, S=46%, V=38%, Net PnL 172,292.**
 
 ---
 
@@ -151,8 +110,11 @@ ROUND2_Manual/
 ├── Directions.txt          # Challenge rules
 ├── Speed Distributions.txt # Distribution descriptions
 ├── analyze_invest.py       # Python analysis + optimization
-├── speed_distributions.png # Distribution visuals
-├── pnl_sensitivity.png     # PnL sensitivity curves
+├── speed_distributions.png # Distribution visuals (2×3 grid)
+├── pnl_sensitivity.png     # PnL sensitivity curves (2×3 grid)
+├── breakeven_multipliers.png # Breakeven speed multiplier curve
+├── breakeven_plot.py       # Breakeven analysis script
+├── invest_and_expand.py    # Monte Carlo simulation approach
 ├── Ignore.txt              # Random thoughts and ideas
 └── README.md               # This file
 ```

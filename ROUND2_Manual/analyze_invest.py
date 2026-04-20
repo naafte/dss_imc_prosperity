@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 np.random.seed(42)
-N_TEAMS = 10000  # other teams (I am +1)
+N_TEAMS = 6000  # other teams (I am +1); ~6000 per Directions
 BUDGET  = 50_000
 
 # ── Core formulas ─────────────────────────────────────────────────────────────
@@ -30,9 +30,8 @@ def speed_mult_vec(other_speeds):
 
 def optimize(sm_arr):
     """
-    Fast optimizer using the fact that S(s) = 7s/100 is linear in s.
-    For any fixed (r, v), the optimal s is at a boundary (0 or max_rs-r).
-    This reduces the search from O(100^3) to O(100^2).
+    Fast optimizer: Scale is linear in s, so for fixed (r, v) the optimal s
+    is always a boundary value — reduces search from O(100^3) to O(100^2).
     """
     best_pnl = -np.inf
     best_r = best_s = best_v = 0
@@ -46,7 +45,6 @@ def optimize(sm_arr):
         if max_rs < 0:
             continue
         r_range = r_idx[:max_rs + 1]
-        # PnL contribution from s is linear => optimum at boundary
         coeff  = R_ARR[r_range] * sm * (7 / 100) - 500
         s_opt  = np.clip(np.where(coeff > 0, max_rs - r_range, 0), 0, max_rs - r_range)
         gross  = R_ARR[r_range] * S_ARR[s_opt] * sm
@@ -62,134 +60,82 @@ def optimize(sm_arr):
     return best_r, best_s, best_v, best_pnl
 
 # ── Distribution generators ───────────────────────────────────────────────────
-# Note: peaks at round numbers (0%, 50%, etc.) also generate off-by-one spikes
-# at the +1 value (1%, 51%) from players trying to edge above the Schelling point.
 
-def add_offbyone_spikes(speeds, schelling_pts, spike_frac=0.05):
-    """For each Schelling point, add a spike at +1 with spike_frac of its mass."""
-    speeds = list(speeds)
-    arr = np.array(speeds)
+def add_offbyone_spikes(arr, schelling_pts, spike_frac=0.05):
+    arr = arr.copy()
     for pt in schelling_pts:
-        n_at_pt  = int(np.sum(arr == pt))
-        n_spike  = int(n_at_pt * spike_frac)
-        # Remove n_spike entries at pt, replace with pt+1
-        idxs = np.where(arr == pt)[0][:n_spike]
-        arr[idxs] = min(pt + 1, 100)
+        idxs = np.where(arr == pt)[0]
+        n_spike = int(len(idxs) * spike_frac)
+        arr[idxs[:n_spike]] = min(pt + 1, 100)
     return arr
 
 def gen_dist1():
-    """Exponential: very few at low %, rises exponentially, peak ~70%, sparse 70-100."""
-    k = 0.08
-    n_main, n_tail = int(N_TEAMS * 0.93), int(N_TEAMS * 0.07)
-    U = np.random.uniform(0, 1, n_main)
-    x_main = np.log(1 + U * (np.exp(k * 70) - 1)) / k
-    x_tail = np.random.uniform(70, 100, n_tail)
-    return np.clip(np.round(np.concatenate([x_main, x_tail])).astype(int), 0, 100)
+    """GPT Bimodal: peaks at 5-20% and 50-80%, sparse 61-81%, very few 81-100%."""
+    n_peak1  = int(N_TEAMS * 0.28)
+    n_dead   = int(N_TEAMS * 0.05)
+    n_peak2  = int(N_TEAMS * 0.52)
+    n_sparse = int(N_TEAMS * 0.10)
+    n_tail   = N_TEAMS - n_peak1 - n_dead - n_peak2 - n_sparse
+    s_peak1  = np.clip(np.random.normal(12, 4, n_peak1), 5, 20)
+    s_dead   = np.random.uniform(20, 50, n_dead)
+    s_peak2  = np.clip(np.random.normal(56, 5, n_peak2), 50, 80)
+    s_sparse = np.random.uniform(61, 81, n_sparse)
+    s_tail   = np.random.uniform(81, 100, n_tail)
+    raw = np.concatenate([s_peak1, s_dead, s_peak2, s_sparse, s_tail])
+    return np.clip(np.round(raw).astype(int), 0, 100)
 
 def gen_dist2():
-    """Uniform Low: uniform 0-50, slight drop 50-70, near-zero 70-100."""
-    w = np.array([50.0, 14.0, 1.5]); w /= w.sum()
-    n1, n2 = int(N_TEAMS * w[0]), int(N_TEAMS * w[1]); n3 = N_TEAMS - n1 - n2
-    raw = np.concatenate([
-        np.random.uniform(0, 50, n1),
-        np.random.uniform(50, 70, n2),
-        np.random.uniform(70, 100, n3),
-    ])
-    speeds = np.clip(np.round(raw).astype(int), 0, 100)
-    # Off-by-one spike at 1 (from players edging above 0)
-    return add_offbyone_spikes(speeds, [0], spike_frac=0.15)
-
-def gen_dist3():
-    """Uniform Race: lower uniform 0-50, rises 50-70, near-zero 70-100."""
-    # 50-70 region is slightly denser than 0-50
-    w = np.array([50.0, 28.0, 1.5]); w /= w.sum()
-    n1, n2 = int(N_TEAMS * w[0]), int(N_TEAMS * w[1]); n3 = N_TEAMS - n1 - n2
-    raw = np.concatenate([
-        np.random.uniform(0, 50, n1),
-        np.random.uniform(50, 70, n2),
-        np.random.uniform(70, 100, n3),
-    ])
-    speeds = np.clip(np.round(raw).astype(int), 0, 100)
-    return add_offbyone_spikes(speeds, [0, 50], spike_frac=0.12)
-
-def gen_dist4():
-    """Normal distribution centered at 33.33%, std~10, truncated to [0,100]."""
-    raw = np.random.normal(loc=33.33, scale=10, size=N_TEAMS * 2)
-    raw = raw[(raw >= 0) & (raw <= 100)][:N_TEAMS]
-    arr = np.clip(np.round(raw).astype(int), 0, 100)
-    return add_offbyone_spikes(arr, [33], spike_frac=0.10)
-
-def gen_dist5():
     """Normal distribution centered at 33.33%, std~15, truncated to [0,100]."""
     raw = np.random.normal(loc=33.33, scale=15, size=N_TEAMS * 2)
     raw = raw[(raw >= 0) & (raw <= 100)][:N_TEAMS]
     arr = np.clip(np.round(raw).astype(int), 0, 100)
     return add_offbyone_spikes(arr, [33], spike_frac=0.10)
 
-def gen_dist6():
-    """Bimodal/Gemini: oblivious peak 0-10, dead zone 11-32, war-zone bulge 33-58.
-    Schelling spikes at 33, 40, 50, 55 plus off-by-one edges at 34, 41, 51, 56."""
-    speeds = []
-    n_ob   = int(N_TEAMS * 0.08)
-    p_ob   = np.array([0.40] + [0.067] * 9); p_ob /= p_ob.sum()
-    speeds.extend(np.random.choice(range(0, 10), n_ob, p=p_ob))
-
-    n_dead = int(N_TEAMS * 0.03)
-    speeds.extend(np.random.randint(11, 33, n_dead))
-
-    n_war  = N_TEAMS - n_ob - n_dead
-    schelling = {33: 0.22, 40: 0.28, 50: 0.35, 55: 0.15}
-    n_sch  = int(n_war * 0.32)
-    pts, wts = zip(*schelling.items())
-    speeds.extend(np.random.choice(pts, n_sch, p=list(wts)))
-
-    n_cont = n_war - n_sch
-    raw    = np.random.beta(2, 5, n_cont) * 26 + 33
-    speeds.extend(np.round(raw).astype(int))
-
-    arr = np.clip(np.array(speeds, dtype=int), 0, 100)
-    return add_offbyone_spikes(arr, [0, 33, 40, 50, 55], spike_frac=0.10)
-
-def gen_dist7():
-    """Noisy/Claude: spike at 0, mass 20-40, exponential tail to 60+."""
-    n_zero = int(N_TEAMS * 0.09)
-    n_mid  = int(N_TEAMS * 0.57)
-    n_tail = N_TEAMS - n_zero - n_mid
-    s_mid  = np.random.beta(2, 2, n_mid) * 20 + 20
-    s_tail = np.clip(np.random.exponential(12, n_tail) + 40, 40, 100)
-    raw    = np.concatenate([np.zeros(n_zero), s_mid, s_tail])
-    arr    = np.clip(np.round(raw).astype(int), 0, 100)
-    return add_offbyone_spikes(arr, [0], spike_frac=0.15)
-
-def gen_dist8():
-    """Race/GPT: heavy concentration 55-95%, inverse of typical distributions."""
-    # From the table: 85-95=25%, 70-85=30%, 55-70=22%, 40-55=12%, 25-40=7%, <25=4%
-    segments = [(85, 95, 0.25), (70, 85, 0.30), (55, 70, 0.22),
-                (40, 55, 0.12), (25, 40, 0.07), (0,  25, 0.04)]
+def gen_dist3():
+    """Gemini: small 0-25%, very large 26-36%, large 37-46%, medium 47-58%, small 59%+."""
+    segments = [
+        (0,  26, 0.10),
+        (26, 37, 0.35),
+        (37, 47, 0.28),
+        (47, 59, 0.23),
+        (59, 100, 0.04),
+    ]
     parts = []
-    total_so_far = 0
+    total = 0
     for i, (lo, hi, frac) in enumerate(segments):
-        n = int(N_TEAMS * frac) if i < len(segments) - 1 else N_TEAMS - total_so_far
-        total_so_far += n
+        n = int(N_TEAMS * frac) if i < len(segments) - 1 else N_TEAMS - total
+        total += n
         parts.append(np.random.uniform(lo, hi, n))
     arr = np.clip(np.round(np.concatenate(parts)).astype(int), 0, 100)
-    # Off-by-one near 50 and 0 (smaller effect here since most players are high)
-    return add_offbyone_spikes(arr, [0, 50], spike_frac=0.10)
+    return add_offbyone_spikes(arr, [25, 36, 46], spike_frac=0.08)
 
-# ── Generate all eight, then derive the 9th ──────────────────────────────────
+def gen_dist4():
+    """Claude: ~20% at [0,5], ~45% at [10,25], ~22% at [25,40], ~8% outliers above 40%."""
+    n1 = int(N_TEAMS * 0.20)   # 0-5%
+    n2 = int(N_TEAMS * 0.05)   # 5-10% implied near-zero
+    n3 = int(N_TEAMS * 0.45)   # 10-25%
+    n4 = int(N_TEAMS * 0.22)   # 25-40%
+    n5 = N_TEAMS - n1 - n2 - n3 - n4  # 40+%
+    raw = np.concatenate([
+        np.random.uniform(0, 5, n1),
+        np.random.uniform(5, 10, n2),
+        np.random.uniform(10, 25, n3),
+        np.random.uniform(25, 40, n4),
+        np.clip(np.random.exponential(8, n5) + 40, 40, 100),
+    ])
+    arr = np.clip(np.round(raw).astype(int), 0, 100)
+    return add_offbyone_spikes(arr, [0], spike_frac=0.15)
 
-COLORS = ['#1976D2', '#388E3C', '#E64A19', '#AD1457', '#6A1B9A', '#7B1FA2', '#F57C00', '#00838F', '#C62828']
+COLORS = ['#1976D2', '#E64A19', '#AD1457', '#6A1B9A', '#C62828']
 
-d1 = gen_dist1(); d2 = gen_dist2(); d3 = gen_dist3(); d4 = gen_dist4()
-d5 = gen_dist5(); d6 = gen_dist6(); d7 = gen_dist7(); d8 = gen_dist8()
+d1 = gen_dist1()
+d2 = gen_dist2()
+d3 = gen_dist3()
+d4 = gen_dist4()
 
-def gen_dist9(all_eight):
-    """
-    KDE of the combined speeds from all 8 distributions.
-    Fit a gaussian_kde to the 80 000 pooled samples, then draw
-    10 000 new integer samples from that smoothed distribution.
-    """
-    pooled = np.concatenate(all_eight).astype(float)
+def gen_dist5(d1, d2, d3, d4):
+    """KDE of Dists 1-4; Normal (Dist 2) weighted at half the others."""
+    pooled = np.concatenate([d1, d2[:N_TEAMS // 2], d3, d4]).astype(float)
     kde    = gaussian_kde(pooled, bw_method='scott')
     samples = []
     while len(samples) < N_TEAMS:
@@ -199,41 +145,43 @@ def gen_dist9(all_eight):
     arr = np.clip(np.round(np.array(samples[:N_TEAMS])).astype(int), 0, 100)
     return arr, kde
 
-d9, kde9 = gen_dist9([d1, d2, d3, d4, d5, d6, d7, d8])
+d5, kde5 = gen_dist5(d1, d2, d3, d4)
 
 dists = [
-    (d1, "Dist 1: Exponential"),
-    (d2, "Dist 2: Uniform (Low)"),
-    (d3, "Dist 3: Uniform (Race)"),
-    (d4, "Dist 4: Normal (std=10)"),
-    (d5, "Dist 5: Normal (std=15)"),
-    (d6, "Dist 6: Bimodal (Gemini)"),
-    (d7, "Dist 7: Noisy (Claude)"),
-    (d8, "Dist 8: Race (GPT)"),
-    (d9, "Dist 9: KDE Consensus"),
+    (d1, "Dist 1: GPT (Bimodal)"),
+    (d2, "Dist 2: Normal (std=15)"),
+    (d3, "Dist 3: Gemini"),
+    (d4, "Dist 4: Claude"),
+    (d5, "Dist 5: KDE Consensus"),
 ]
 
-# ── Figure 1: Distribution visuals (3×3, last cell empty) ────────────────────
+# ── Figure 1: Distribution visuals (2×3, last cell hidden) ────────────────────
 
-fig, axes = plt.subplots(3, 3, figsize=(18, 16))
-fig.suptitle("Speed Investment Distributions  (~10 000 teams)", fontsize=16, fontweight='bold')
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+fig.suptitle("Speed Investment Distributions  (~6 000 teams)", fontsize=16, fontweight='bold')
+axes[1][2].set_visible(False)  # only 5 distributions
 
 annot_data = [
-    [(10, 0.55, "Very few\nat low %"), (70, 0.92, "Peak ~70%")],
-    [(25, 0.88, "Uniform 0-50%"), (59, 0.65, "Slight drop"), (83, 0.25, "Near-zero")],
-    [(25, 0.70, "Lower flat\n0-50%"), (60, 0.88, "Rises\n50-70%"), (83, 0.25, "Near-zero")],
-    [(33, 0.92, "Peak ~33%\nstd=10")],
-    [(33, 0.92, "Peak ~33%\nstd=15")],
-    [(5, 0.92, "Oblivious"), (21, 0.40, "Dead\nzone"), (44, 0.70, "War-zone")],
-    [(0, 0.88, "0% cluster"), (30, 0.78, "Core 20-40%"), (62, 0.45, "Tail 60+")],
-    [(15, 0.40, "<25%:\n~4%"), (47, 0.55, "40-55%:\n~12%"), (77, 0.88, "55-95%:\n~77%")],
-    [(50, 0.92, "Smoothed\nconsensus")],
+    [(12, 0.80, "Peak 1\n5–20%"), (56, 0.80, "Peak 2\n50–80%"), (82, 0.45, "Very\nfew")],
+    [(33, 0.88, "Peak ~33%\nstd=15")],
+    [(12, 0.45, "Small"), (31, 0.88, "Very large\n26–36%"), (41, 0.70, "Large\n37–46%"),
+     (52, 0.60, "Medium\n47–58%"), (75, 0.30, "Small")],
+    [(2,  0.70, "~20%"), (17, 0.92, "~45%\nof teams"), (32, 0.65, "~22%"), (55, 0.40, "~8%\noutliers")],
+    [(50, 0.80, "Smoothed consensus\n(Normal ½ weight)")],
 ]
 vline_data = [
-    [68], [], [50], [33], [33], [33, 40, 50, 55], [], [55], [],
+    [],
+    [33],
+    [26, 37, 47, 59],
+    [5, 10, 25, 40],
+    [],
 ]
 offbyone_data = {
-    1: [1], 2: [1, 51], 3: [34], 4: [34], 5: [1, 34, 41, 51, 56], 6: [1], 7: [1, 51],
+    0: [],
+    1: [34],
+    2: [26, 37],
+    3: [1],
+    4: [],
 }
 
 for idx, (dist, name) in enumerate(dists):
@@ -242,10 +190,9 @@ for idx, (dist, name) in enumerate(dists):
                            alpha=0.72, edgecolor='none', density=True)
     ymax = max(counts)
 
-    # Overlay KDE smooth curve on the 9th subplot
-    if idx == 8:
+    if idx == 4:
         x_smooth = np.linspace(0, 100, 500)
-        kde_vals  = kde9(x_smooth)
+        kde_vals  = kde5(x_smooth)
         ax.plot(x_smooth, kde_vals, color='black', lw=2.0, label='KDE curve')
         ax.legend(fontsize=9)
 
@@ -264,8 +211,6 @@ for idx, (dist, name) in enumerate(dists):
                 color='darkred', rotation=90, va='bottom')
     for hv in offbyone_data.get(idx, []):
         ax.axvline(hv, color='gold', lw=1.2, linestyle='--', alpha=0.8)
-
-# All 9 cells used — nothing to hide
 
 plt.tight_layout()
 plt.savefig("speed_distributions.png", dpi=150, bbox_inches='tight')
@@ -314,11 +259,12 @@ for r in results:
           f"{r['sm']:>10.4f} {r['gross']:>14,.0f} {r['net']:>14,.0f}")
 print("=" * 90)
 
-# ── Figure 2: PnL vs Speed at optimal R, S ───────────────────────────────────
+# ── Figure 2: PnL vs Speed at optimal R, S (2×3, last cell hidden) ───────────
 
-fig, axes = plt.subplots(3, 3, figsize=(18, 16))
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 fig.suptitle("Net PnL vs Speed Investment  (R and S fixed at their optimal values)",
              fontsize=14, fontweight='bold')
+axes[1][2].set_visible(False)
 
 for idx, res in enumerate(results):
     ax = axes[idx // 3][idx % 3]

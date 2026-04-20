@@ -1,67 +1,25 @@
-**Note that percentages must be integers, estimate around 10000 teams
+**Note that percentages must be integers, estimate around 6000 teams
 **These are potential distributions for speed
-**Peaks at 0%, 50%, etc. will likely also have very high for 1%, 51%, etc. for those trying to get a slight edge
 
-Distribution 1: Exponential distribution
+Distribution 1: GPT
 
-Expect very few teams to select very low percentages and for the amount to increase exponentially to the highest around 70% and very few between 70-100%. 
+Bimodal distribution with peaks 50-80% and 5-20%. 
 
-Distribution 2: Uniform distribution (Low)
+Few from 61%-81% and very few up to 100%. 
 
-Expect a uniform distribution from 0-50%, y to drop a little from 50-70%, and drop to almost 0 from 70-100%. 
-
-Distribution 3: Uniform distribution (Race)
-
-Lower uniform distribution from 0-50%, y to increase a little from 50-70%, and drop to almost 0 from 70-100%. 
-
-Distribution 4: Normal (10 std)
-
-Normal distribution centered around 33.33% (~10% standard deviation)
-
-Distribution 5: Normal (15 std)
+Distribution 2: Normal (15 std)
 
 Normal distribution centered around 33.33% (~15% standard deviation)
 
-Distribution 6: Bimodal distribution (Gemini)
+Distribution 3: Gemini
 
-Instead of a smooth natural curve, expect a highly unnatural, psychological shape. It will likely look like a bimodal distribution (two distinct peaks of different sizes) heavily scarred by unnatural vertical spikes.
+0-25% small, 26-36% very large, 37-46% large, 47-58% medium, 59%+ small
 
-The "Oblivious" Peak (0% – 10%): A small, stubborn peak at the very bottom. These are players who saw the massive numbers that Research and Scale output on paper and decided to go all-in there, completely ignoring the Speed multiplier.
+Distribution 4: Claude
 
-The "Dead Zone" (10% – 25%): Very few bids. It’s too expensive to be a throwaway bid, but too weak to actually win any meaningful rank against the try-hards.
+~15–25% of players at p ∈ [0, 5]
+~40–50% at p ∈ [10, 25]
+~20–25% at p ∈ [25, 40]
+~5–10% outliers above 40%
 
-The "War Zone" Bulge (35% – 55%): This is where the vast majority of the data will sit. It will be skewed to the left (meaning a thick, dense build-up that drops off sharply as you approach 60%). Players know they must bid high here to survive, but they are terrified of starving their Base PnL.
-
-The Schelling Point Spikes: Piercing through that main bulge, you will see massive, dense vertical spikes at clean numbers. Human psychology dictates that you will see a disproportionate number of bids at exactly 33.3% (the even split), 40%, 50% (the half-measure), and perhaps 55%.
-
-Because equal investments share the same rank, landing exactly on one of those Schelling points (like 50%) is highly volatile. You might end up tied with 15% of the player base, causing a massive rank collision.
-
-Distribution 7: Noisy (Claude)
-
-Expect a behaviorally-noisy distribution: a cluster at v=0 from players who either reason it through or just focus on R+S, a big mass between v=20–40 from players who "hedge," and a tail out to v=60+ from speed-dominant players. 
-The full arms race scenario is possible in a competitive tournament culture. 
-The low arms race scenario requires a level of coordination that's unrealistic without communication.
-
-Distribution 8: Race (GPT)
-
-Speed Range	% of Teams
-85–95	20–30%
-70–85	25–35%
-55–70	20–25%
-40–55	10–15%
-25–40	5–10%
-<25	~0–5%
-
-Distribution 9: KDE plot of the above distribution's speeds
-
-Distribution 10 (Gemini) - Nathan: 
-
-A bimodal curve with a massive spike at 70–90% (risk-averters), a smaller hump at 33% (equal-splitters), and a sharp drop-off in the 10–25% range.
-
-Distribution 11 (Claude) - Nathan:
-
-A roughly normal distribution centered around 25–30% Speed investment, right-skewed by a small tail of Speed-gamblers, with the mass of players bunched between 15–35% Speed and most of the remaining budget split unevenly toward Research over Scale.
-
-Distrubtion 12 (GPT) - Nathan:
-
-The distribution will be heavily concentrated in the middle (Speed ≈ 5–15) with a smaller left tail of low-Speed players and a thinner right tail of high-Speed overinvestors.
+Distribution 5: KDE plot of the above distribution's speeds, weight normal at half the others
