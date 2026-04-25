@@ -1,5 +1,8 @@
 distibutions should not actually be bell shaped
 it's safer to go up than to go down, so the left of the peak should drop faster than the right of the peak
 
+had a lot of bell shaped curves in my distribution, with higher peaks around multiples of 10 and lower peaks around multiples of 5
+refer to the results of round 2 and notice how it is similar, except instead of bell shaped it is just decaying rapidly until the next peak
+
 continuous nash equilibrium: 857.5
 integer nash equilibrium: 860
