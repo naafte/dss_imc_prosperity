@@ -1,0 +1,67 @@
+bid 1: 795
+expect around 3000 other players, can only bid whole numbers
+calculate mean of each distribution
+all bells should drop somewhat sharply from the mini peak
+
+Distribution 1: gpt
+| Bid          | % of players |
+| ------------ | ------------ |
+| 820 or below | 4%           |
+| 821–840      | 6%           |
+| 841–850      | 8%           |
+| 851–857      | 10%          |
+| **858**      | **14%**      |
+| 859          | 4%           |
+| 860          | 9%           |
+| 861          | 3%           |
+| 862          | 7%           |
+| 863          | 3%           |
+| 864          | 5%           |
+| **865**      | **10%**      |
+| 866          | 3%           |
+| **867**      | **7%**       |
+| 868          | 2%           |
+| **869**      | **5%**       |
+| **870**      | **7%**       |
+| 871–875      | 7% total     |
+| 876–885      | 4%           |
+| 886+         | 2%           |
+
+for ranges, like 821-840, there should be mini peaks at multiples of 10 (820, 830, 840, 850, 890), and then from those multiples of 10, it should decrease both going up and going down, almost like mini normal functions. 
+there should also be mini mini peaks at multiples of 5 (825, 835, 845, 855)
+
+
+Distribution 2: gemini
+20% around 856-860, with highest around 860 and gradually decreasing to 856
+60% peaking at 861 and 862, before gradually decreasing until 865
+20% around 866, peak at 866 and gradually decreasing for each value after
+
+
+Distribution 3: claude
+| Second bid | % of competitors |
+| <820 | 1.5% |
+| 820 | 1.5% |
+| 830 | 2% |
+| 840 | 3% |
+| 845 | 3% |
+| 850 | 8% |
+| 855 | 18% |
+| 860 | 22% |
+| 865 | 14% |
+| 870 | 10% |
+| 875 | 6% |
+| 880 | 5% |
+| 885 | 3% |
+| 895 | 2% |
+| 910+ | 1% |
+
+from rows 2 and on, the bid value in the table should be greatest, and decrease both going up and down, shaped like a mini normal function. 
+there should also be a mini mini peak at multiples of 5 if that number is not already included in a separate row, (so at 825 and 835)
+for example, based on line 2, 820 should be highest and there should be decreasing values until ~822-823
+for row 1, the peak should be around 819, which should be lower than 820, and gradually decreasing going down (towards 818 and onwards)
+
+
+
+Distribution 4: 
+KDE distribution of the above distribution
+

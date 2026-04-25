@@ -1,0 +1,5 @@
+distibutions should not actually be bell shaped
+it's safer to go up than to go down, so the left of the peak should drop faster than the right of the peak
+
+continuous nash equilibrium: 857.5
+integer nash equilibrium: 860
