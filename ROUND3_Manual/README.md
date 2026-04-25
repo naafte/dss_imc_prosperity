@@ -60,3 +60,4 @@ Three distributions were modelled based on AI model predictions (~3,000 players,
 | `bid2_distributions_viz.png` | Final visualization (3 individual distributions + KDE consensus + stats) |
 | `analyze_bid2.py` | Additional analysis script |
 | `bid2_analysis.png` | Additional analysis output |
+| `notes.txt` | Personal notes: distributions are right-skewed (safer to overbid than underbid), integer Nash equilibrium 860|
