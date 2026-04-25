@@ -8,7 +8,9 @@ You submit **two bids**:
 - **Bid 1**: If higher than a counterparty's reserve price, you trade at Bid 1.
 - **Bid 2**: If higher than a counterparty's reserve price *and* higher than the mean of all players' second bids, you trade at Bid 2. If Bid 2 is above the reserve price but at or below the mean, your PnL is penalised by:
 
-$$\left(\frac{920 - \text{avg\_b2}}{920 - b2}\right)^3$$
+$$\left(\frac{920 - \bar{b}_2}{920 - b_2}\right)^3$$
+
+where $\bar{b}_2$ is the mean second bid across all players and $b_2$ is your second bid.
 
 The penalty cancels exactly when `b2 = avg_b2`, making the mean of the second-bid distribution the natural target.
 
