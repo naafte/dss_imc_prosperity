@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/sab06/IMC Prosperity/ROUND2//**)",
+      "Read(//c/Users/sab06/IMC Prosperity/ROUND2/ROUND2_Manual//**)",
+      "Bash(python eda_visuals.py)"
+    ]
+  }
+}

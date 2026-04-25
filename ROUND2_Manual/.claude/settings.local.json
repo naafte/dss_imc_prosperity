@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python -c \"import numpy; import matplotlib; import scipy; print\\('OK'\\)\")",
       "Bash(python breakeven_plot.py)",
-      "Bash(python analyze_invest.py)"
+      "Bash(python analyze_invest.py)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
