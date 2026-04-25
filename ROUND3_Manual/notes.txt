@@ -1,16 +1,17 @@
-distributions should not actually be bell shaped
-it's safer to go up than to go down, so the left of the peak should drop faster than the right of the peak
-
-had a lot of bell shaped curves in my distribution, with higher peaks around multiples of 10 and lower peaks around multiples of 5
-refer to the results of round 2 and notice how it is similar, except instead of bell shaped it is just decaying rapidly until the next peak
-
 being slightly above the mean punishes linearly, being slightly below punishes very strongly
 that means that we should push high and others will likely push up 
 are people irrational enough for there to be a full arms race? 
 based on round 2, there aren't too many people around 50-70, so there wasn't much of an arms race. 
 however, MANY people put 0 and close to 0, which is also a sign of irrationality but mostly conservatism. 
 there were a lot more people close to 0, so i would argue that irrational people are generally more conservative.
-up in the air: how many of these irrational people got eliminated and were they eliminated evenly? 
+up in the air: how many of these irrational people got eliminated and were they eliminated evenly?
+i would assume that most didn't get eliminated since even 0 and 70 should have generated around 70-80k PnL assuming research and scale were optimal
+
+distributions should not actually be bell shaped
+it's safer to go up than to go down, so the left of the peak should drop faster than the right of the peak
+
+had a lot of bell shaped curves in my distribution, with higher peaks around multiples of 10 and lower peaks around multiples of 5
+refer to the results of round 2 and notice how it is similar, except instead of bell shaped it is just decaying rapidly until the next peak
 
 continuous nash equilibrium: 857.5
 integer nash equilibrium: 860
