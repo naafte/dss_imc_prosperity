@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(python eda.py)",
+      "Bash(python -c ' *)",
+      "Bash(python hedge_viz.py)",
+      "Bash(python compare_stocks.py)",
+      "Bash(python *)",
+      "Bash(pip install *)",
+      "Bash(git add *)"
+    ]
+  }
+}
