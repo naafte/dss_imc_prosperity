@@ -1,0 +1,58 @@
+can choose to buy or sell each item with nonnegative integer volume. 
+
+
+# =========================================
+# AETHER CRYSTAL OPTION CHALLENGE — MINIMAL INPUT
+# =========================================
+
+SPOT:
+S_bid=49.975
+S_ask=50.025
+
+MODEL:
+sigma=2.51
+r=0
+trading_days_per_year=252
+steps_per_day=4
+
+TIME:
+14_days = 10 trading days = 40 steps = 10/252 years
+21_days = 15 trading days = 60 steps = 15/252 years
+7_days  = 5 trading days  = 20 steps = 5/252 years
+
+# =========================================
+# PRODUCTS
+# format:
+# name | type | K | T(days) | extra | bid | ask | size
+# =========================================
+
+AC_50_P   | put       | 50 | 21 | -              | 12.00 | 12.05 | 50
+AC_50_C   | call      | 50 | 21 | -              | 12.00 | 12.05 | 50
+AC_35_P   | put       | 35 | 21 | -              | 4.33  | 4.35  | 50
+AC_40_P   | put       | 40 | 21 | -              | 6.50  | 6.55  | 50
+AC_45_P   | put       | 45 | 21 | -              | 9.05  | 9.10  | 50
+AC_60_C   | call      | 60 | 21 | -              | 8.80  | 8.85  | 50
+
+AC_50_P_2 | put       | 50 | 14 | -              | 9.70  | 9.75  | 50
+AC_50_C_2 | call      | 50 | 14 | -              | 9.70  | 9.75  | 50
+
+AC_50_CO  | chooser   | 50 | 21 | choose_at=14   | 22.20 | 22.30 | 50
+AC_40_BP  | binaryput | 40 | 21 | payout=10      | 5.00  | 5.10  | 50
+AC_45_KO  | knockput  | 45 | 21 | barrier=35     | 0.150 | 0.175 | 500
+
+# =========================================
+# PAYOFF RULES
+# =========================================
+
+vanilla_call: max(S_T - K, 0)
+vanilla_put:  max(K - S_T, 0)
+
+chooser:
+    at day14 choose call or put based on which is ITM then expire at day21
+
+binary_put:
+    10 if S_T < 40 else 0
+
+knockout_put:
+    if min_path < 35 => 0
+    else max(45 - S_T, 0)
