@@ -1,0 +1,303 @@
+# **Manual trading challenge: “Vanilla Just Isn’t Exotic Enough”**
+
+As the Intarian economy evolved, trading expanded beyond standard calls and puts. In this round, you can trade `AETHER_CRYSTAL`, vanilla options with 2 and 3 week expiries, and several exotic derivatives written on the same underlying. Please note that a ‘week’ here refers to 5 trading days and that the ‘standard’ number of trading days per year is 252 (since some big exchanges are typically open 252 days per year). So “2 weeks” means 10 trading days, and “3 weeks” represents 15 trading days. For transparency purposes, this is how the days are computed on our end:
+
+```python
+TRADING_DAYS_PER_YEAR = 252
+STEPS_PER_DAY = 4
+STEPS_PER_YEAR = TRADING_DAYS_PER_YEAR * STEPS_PER_DAY
+
+def weeks_to_years(weeks: float) -> float:
+    # 5 business days per week, annualized to 252 trading days
+    return (weeks * 5) / TRADING_DAYS_PER_YEAR
+
+def steps_for_weeks(weeks: float) -> int:
+    return int(round(weeks * 5 * STEPS_PER_DAY))
+```
+
+Your objective is to construct positions that generate positive expected PnL. But be aware: unhedged exposure can lead to large losses, so risk management matters.
+
+All products are written on `AETHER_CRYSTAL`. You can trade the underlying, 2 week and 3 week vanilla calls and puts, and the following exotics:
+
+<aside>
+❓
+
+### **Chooser Option**
+
+Expires in 3 weeks. After 2 weeks, the buyer chooses whether it becomes a call or a put, selecting whichever would be in the money at that time. It then behaves like a standard option for the final week until expiry.
+
+</aside>
+
+<aside>
+🔀
+
+### Binary Put Option
+
+Has an all-or-nothing payoff. If the underlying is below the strike at expiry, it pays the specified amount. Otherwise, it expires worthless.
+
+</aside>
+
+<aside>
+🥊
+
+### **Knock-Out Put Option**
+
+Behaves like a regular put unless the underlying ever trades below the knockout barrier before expiry. If the barrier is breached at any point, the option immediately becomes worthless.
+
+</aside>
+
+You may buy or sell up to the displayed volume in each product. Your final score is the average PnL across 100 simulations of the underlying.
+
+The underlying `AETHER_CRYSTAL` is simulated using Geometric Brownian Motion with zero risk-neutral drift and fixed annualized volatility of 251%. Prices evolve on a discrete grid of 4 steps per trading day, assuming 252 trading days per year.
+
+And remember, when payoffs become conditional, so does risk. Good luck!
+
+
+Here are my options:
+
+========================================================
+IMC PROSPERITY - AETHER CRYSTAL OPTIONS CHALLENGE
+AVAILABLE OPTION CONTRACTS (ROUND 1)
+========================================================
+
+Underlying Asset:
+--------------------------------------------------------
+Symbol: AC
+Name: Aether Crystals (AETHER-CRYSTAL)
+
+Spot Market:
+Bid: 49.975
+Ask: 50.025
+Available Bid Size: 200
+Available Ask Size: 200
+
+Description:
+Aether Crystals are precision-grown minerals formed under controlled
+electromagnetic conditions. Each crystal stores and stabilizes ambient
+energy fluctuations, making them invaluable in advanced communication
+systems, architectural harmonics, and precision instrumentation.
+
+
+========================================================
+VANILLA OPTIONS - 21 DAY EXPIRY
+========================================================
+
+--------------------------------------------------------
+Contract: AC_50_P
+Type: Vanilla Put Option
+Strike: 50
+Expiry: T + 21
+Bid: 12.00
+Ask: 12.05
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +2.71
+
+Description:
+Aether Crystal PUT Option contract with a Strike Price of 50 XIRECs
+and a Time To Expiry of 21 Solvenarian Days (starting from Round 1, on Intara).
+
+--------------------------------------------------------
+Contract: AC_50_C
+Type: Vanilla Call Option
+Strike: 50
+Expiry: T + 21
+Bid: 12.00
+Ask: 12.05
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: -0.45
+
+Description:
+Aether Crystal CALL Option contract with a Strike Price of 50 XIRECs
+and a Time To Expiry of 21 Solvenarian Days (starting from Round 1, on Intara).
+
+--------------------------------------------------------
+Contract: AC_35_P
+Type: Vanilla Put Option
+Strike: 35
+Expiry: T + 21
+Bid: 4.33
+Ask: 4.35
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +0.42
+
+Description:
+Aether Crystal PUT Option contract with a Strike Price of 35 XIRECs
+and a Time To Expiry of 21 Solvenarian Days.
+
+--------------------------------------------------------
+Contract: AC_40_P
+Type: Vanilla Put Option
+Strike: 40
+Expiry: T + 21
+Bid: 6.50
+Ask: 6.55
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: 0.00
+
+Description:
+Aether Crystal PUT Option contract with a Strike Price of 40 XIRECs
+and a Time To Expiry of 21 Solvenarian Days.
+
+--------------------------------------------------------
+Contract: AC_45_P
+Type: Vanilla Put Option
+Strike: 45
+Expiry: T + 21
+Bid: 9.05
+Ask: 9.10
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: -0.48
+
+Description:
+Aether Crystal PUT Option contract with a Strike Price of 45 XIRECs
+and a Time To Expiry of 21 Solvenarian Days.
+
+--------------------------------------------------------
+Contract: AC_60_C
+Type: Vanilla Call Option
+Strike: 60
+Expiry: T + 21
+Bid: 8.80
+Ask: 8.85
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +0.42
+
+Description:
+Aether Crystal CALL Option contract with a Strike Price of 60 XIRECs
+and a Time To Expiry of 21 Solvenarian Days.
+
+
+========================================================
+VANILLA OPTIONS - 14 DAY EXPIRY
+========================================================
+
+--------------------------------------------------------
+Contract: AC_50_P_2
+Type: Vanilla Put Option
+Strike: 50
+Expiry: T + 14
+Bid: 9.70
+Ask: 9.75
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +0.71
+
+Description:
+Aether Crystal PUT Option contract with a Strike Price of 50 XIRECs
+and a Time To Expiry of 14 Solvenarian Days (starting from Round 1, on Intara).
+
+--------------------------------------------------------
+Contract: AC_50_C_2
+Type: Vanilla Call Option
+Strike: 50
+Expiry: T + 14
+Bid: 9.70
+Ask: 9.75
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +0.71
+
+Description:
+Aether Crystal CALL Option contract with a Strike Price of 50 XIRECs
+and a Time To Expiry of 14 Solvenarian Days (starting from Round 1, on Intara).
+
+
+========================================================
+EXOTIC DERIVATIVES
+========================================================
+
+--------------------------------------------------------
+Contract: AC_50_CO
+Type: Chooser Option
+Strike: 50
+Expiry: T + 14/21
+Bid: 22.20
+Ask: 22.30
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +0.71
+
+Description:
+Aether Crystal CHOOSER Option contract with a Strike Price of 50 XIRECs
+and a Time To Expiry of 21 Solvenarian Days (starting from Round 1, on Intara).
+
+Mechanics:
+- After 14 Solvenarian Days, the buyer chooses the side (PUT or CALL).
+- At that point, the contract automatically converts to whichever side is
+  "in the money".
+- After the remaining 7 Solvenarian Days, the contract expires like a
+  standard PUT or CALL option.
+
+--------------------------------------------------------
+Contract: AC_40_BP
+Type: Binary Put Option
+Strike: 40
+Expiry: T + 21
+Bid: 5.00
+Ask: 5.10
+Bid Size: 50
+Ask Size: 50
+Displayed Edge: +0.71
+
+Description:
+Aether Crystal BINARY PUT Option contract with a Strike Price of 40 XIRECs
+and a Time To Expiry of 21 Solvenarian Days (starting from Round 1, on Intara).
+
+Mechanics:
+- If the value of the Aether Crystal expires below 40 XIRECs:
+      payout = fixed 10 XIRECs
+- Otherwise:
+      payout = 0
+
+--------------------------------------------------------
+Contract: AC_45_KO
+Type: Knock-Out Put Option
+Strike: 45
+Barrier: 35
+Expiry: T + 21
+Bid: 0.150
+Ask: 0.175
+Bid Size: 500
+Ask Size: 500
+Displayed Edge: +0.71
+
+Description:
+Aether Crystal KNOCK-OUT PUT Option contract with:
+- Strike Price = 45 XIRECs
+- Barrier Price = 35 XIRECs
+- Time To Expiry = 21 Solvenarian Days
+
+Mechanics:
+- If underlying ever falls below 35 XIRECs before expiry:
+      contract is knocked out and expires worthless
+- If barrier is never breached:
+      expires with same payoff as a standard put with strike 45
+
+
+========================================================
+QUICK MACHINE-READABLE SUMMARY
+========================================================
+
+UNDERLYING:
+AC spot bid=49.975 ask=50.025 bid_size=200 ask_size=200
+
+OPTIONS:
+AC_50_P   type=put        strike=50 expiry=21 bid=12.00 ask=12.05 size=50
+AC_50_C   type=call       strike=50 expiry=21 bid=12.00 ask=12.05 size=50
+AC_35_P   type=put        strike=35 expiry=21 bid=4.33 ask=4.35 size=50
+AC_40_P   type=put        strike=40 expiry=21 bid=6.50 ask=6.55 size=50
+AC_45_P   type=put        strike=45 expiry=21 bid=9.05 ask=9.10 size=50
+AC_60_C   type=call       strike=60 expiry=21 bid=8.80 ask=8.85 size=50
+AC_50_P_2 type=put        strike=50 expiry=14 bid=9.70 ask=9.75 size=50
+AC_50_C_2 type=call       strike=50 expiry=14 bid=9.70 ask=9.75 size=50
+AC_50_CO  type=chooser    strike=50 expiry=21 choose_at=14 bid=22.20 ask=22.30 size=50
+AC_40_BP  type=binaryput  strike=40 expiry=21 payout_if_ITM=10 bid=5.00 ask=5.10 size=50
+AC_45_KO  type=knockoutput strike=45 barrier=35 expiry=21 bid=0.150 ask=0.175 size=500
+
+========================================================
