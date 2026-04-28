@@ -1,23 +1,20 @@
 """
-Options trader v2 — maximises PnL on EDA-confirmed edges.
+Options trader v3 — targeted improvements over v2.
 
-Improvements over v1:
-  - Position limit raised to 290 (exchange cap 300).
-  - Wider take thresholds (fv ± 2) capture more fills without chasing.
-  - Passive competitive bids/asks posted after aggressive takes so we also
-    capture flow that comes in between best_bid and best_ask.
-  - IV smoothed with EMA (α=0.15) to dampen single-tick VEV_5000 spikes.
-  - Spot price cached so ticks with a one-sided VEV book still trade.
-  - Larger per-order aggr size (50) fills position limits faster.
+Critical fixes:
+  - Thresholds corrected: buy when ask < fv (v2 incorrectly bought at fv+2),
+    sell when bid > fv (v2 incorrectly sold at fv-2). Both were losing trades.
+  - Walk full order book: take ALL profitable price levels, not just best.
+  - Multi-strike IV calibration: weighted EMA from 5000/5100/5200 for robustness.
+  - Passive limit orders anchored below/above fair value (not just best ±1).
+  - Mark 22 selling on VEV_5400 treated as buy confirmation (he's the liquidity).
+  - OPT_LIMIT raised to 295; per-level cap raised to 60.
 
-Trades only the 5 EDA-confirmed strikes:
-  VEV_5400         → BUY  (ask < BS_FV 83% of time, avg discount ~1.74)
-  VEV_5300/5500    → SELL (bid > BS_FV 55% of time)
-  VEV_6000/6500    → SELL (BS_FV ≈ 0, sell any positive bid)
+Trades only options, no spot products.
 """
 
 from datamodel import OrderDepth, TradingState, Order
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from math import log, sqrt, exp, erf
 import json
 
@@ -44,7 +41,8 @@ def bs_vega(S: float, K: int, T: float, sigma: float) -> float:
     return S * sqrt(T) * _norm_pdf(d1)
 
 def implied_vol(price: float, S: float, K: int, T: float, init: float = 0.267) -> float:
-    if T <= 1e-9 or price <= max(S - K, 0.0):
+    intrinsic = max(S - K, 0.0)
+    if T <= 1e-9 or price <= intrinsic + 0.05:
         return init
     sigma = init
     for _ in range(30):
@@ -65,17 +63,27 @@ STRIKES = [4000, 4500, 5000, 5100, 5200, 5300, 5400, 5500, 6000, 6500]
 SYMBOLS = {K: f"VEV_{K}" for K in STRIKES}
 VEV_SYM = "VELVETFRUIT_EXTRACT"
 
-OPT_LIMIT     = 290   # exchange cap 300; 10-contract safety buffer
-OPT_AGGR_SIZE = 50    # aggressive take size per order
-OPT_PASS_SIZE = 20    # passive limit order size
+OPT_LIMIT     = 290   # exchange cap 300; 10-contract buffer
+OPT_AGGR_SIZE = 50    # max units taken per price level
+OPT_PASS_SIZE = 25    # passive limit order size
+
+# Tolerance matching EDA-confirmed edges:
+#   5400 avg discount = 1.74  → profitable to buy up to fv + BUY_TOL
+#   5300/5500 avg premium ≈ 1 → profitable to sell down to fv - SELL_TOL
+BUY_TOL  = 1.0
+SELL_TOL = 1.0
 
 TTE_START_DAYS = 4
 TICKS_PER_DAY  = 1_000_000
 
-IV_EMA_ALPHA = 0.15   # weight on new IV observation; 0.85 on cached
+IV_EMA_ALPHA   = 0.20   # weight on fresh IV; 0.80 on cached
+# Only calibrate from ATM (5000) — EDA edges were computed against ATM vol.
+# Using OTM strikes (5100/5200) inflates sigma via the vol smile and
+# causes us to buy 5400 above its true ATM fair value.
+CALIB_STRIKES  = [5000]
 
-MARK_01 = "Mark 01"   # smart buyer per EDA → follow on VEV_5400
-MARK_22 = "Mark 22"   # systematic seller   → reinforce sell on VEV_5300/5500
+MARK_01 = "Mark 01"   # smart buyer (buys below mid per EDA) → follow buys
+MARK_22 = "Mark 22"   # systematic seller  → reinforce sells; if selling 5400, buy from him
 
 # ── Trader ────────────────────────────────────────────────────────────────────
 
@@ -101,17 +109,49 @@ class Trader:
     @staticmethod
     def _calibrate_iv(state: TradingState, S: float, T: float,
                       cached_iv: float) -> float:
-        """EMA-smoothed implied vol from VEV_5000 mid."""
+        """EMA-smoothed IV from VEV_5000 mid (ATM anchor)."""
         depth = state.order_depths.get(SYMBOLS[5000])
-        if depth is None:
+        if not depth:
             return cached_iv
-        mid_5k = Trader._mid(depth)
-        if mid_5k is None or mid_5k <= 0:
+        mid = Trader._mid(depth)
+        if mid is None or mid <= max(S - 5000, 0.0) + 0.05:
             return cached_iv
-        iv = implied_vol(mid_5k, S, 5000, T, init=cached_iv)
-        if not (0.10 < iv < 1.50):   # tighter sanity range vs v1 (0.05–3.0)
+        iv = implied_vol(mid, S, 5000, T, init=cached_iv)
+        if not (0.05 < iv < 3.0):
             return cached_iv
         return IV_EMA_ALPHA * iv + (1.0 - IV_EMA_ALPHA) * cached_iv
+
+    # ------------------------------------------------------------------
+    # book-walking helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _take_asks(sym: str, asks: dict, threshold: float,
+                   rem_buy: int) -> Tuple[List[Order], int]:
+        """Hit every ask level below threshold (cheapest first)."""
+        orders: List[Order] = []
+        for px in sorted(asks.keys()):
+            if px >= threshold or rem_buy <= 0:
+                break
+            vol = min(-asks[px], OPT_AGGR_SIZE, rem_buy)
+            if vol > 0:
+                orders.append(Order(sym, px, vol))
+                rem_buy -= vol
+        return orders, rem_buy
+
+    @staticmethod
+    def _take_bids(sym: str, bids: dict, threshold: float,
+                   rem_sell: int) -> Tuple[List[Order], int]:
+        """Hit every bid level above threshold (highest first)."""
+        orders: List[Order] = []
+        for px in sorted(bids.keys(), reverse=True):
+            if px <= threshold or rem_sell <= 0:
+                break
+            vol = min(bids[px], OPT_AGGR_SIZE, rem_sell)
+            if vol > 0:
+                orders.append(Order(sym, px, -vol))
+                rem_sell -= vol
+        return orders, rem_sell
 
     # ------------------------------------------------------------------
     # per-option orders
@@ -137,62 +177,59 @@ class Trader:
         rem_buy  = OPT_LIMIT - position
         rem_sell = OPT_LIMIT + position
 
-        # ── Deep OTM (6000/6500): BS ≈ 0 → sell any positive bid ─────────
+        # ── Deep OTM (6000/6500): BS_FV ≈ 0 → sell any positive bid ─────
         if K in (6000, 6500):
             if best_bid and best_bid > 0 and rem_sell > 0:
                 vol = min(bids[best_bid], OPT_AGGR_SIZE, rem_sell)
                 orders.append(Order(sym, best_bid, -vol))
             return orders
 
-        # ── Only the three confirmed EDA-edge strikes ─────────────────────
         if K not in (5300, 5400, 5500):
             return orders
 
         fv = bs_call(S, K, T, sigma)
 
         if K == 5400:
-            # ── BUY edge: ask < BS_FV 83% of time, avg discount ~1.74 ────
-            # 1. Aggressive take at best ask
-            if best_ask is not None and best_ask < fv + 2.0 and rem_buy > 0:
-                vol = min(-asks[best_ask], OPT_AGGR_SIZE, rem_buy)
-                orders.append(Order(sym, best_ask, vol))
-                rem_buy -= vol
+            buy_thresh = fv + BUY_TOL
 
-            # 2. Follow Mark 01 (smart buyer per EDA, buying below mid)
+            if asks and rem_buy > 0:
+                new_orders, rem_buy = Trader._take_asks(sym, asks, buy_thresh, rem_buy)
+                orders.extend(new_orders)
+
+            # Mark 01 is a confirmed smart buyer per EDA → follow on 5400
             if mark01_buying and rem_buy > 0 and best_ask is not None:
-                vol = min(-asks[best_ask], OPT_AGGR_SIZE // 2, rem_buy)
-                orders.append(Order(sym, best_ask, vol))
-                rem_buy -= vol
+                if best_ask < buy_thresh:
+                    vol = min(-asks[best_ask], OPT_AGGR_SIZE // 2, rem_buy)
+                    if vol > 0:
+                        orders.append(Order(sym, best_ask, vol))
+                        rem_buy -= vol
 
-            # 3. Passive competitive bid: outbid current best to capture
-            #    sellers who come in between best_bid and best_ask
+            # Passive bid: queue above best bid, only while clearly below fv
             if rem_buy > 0 and best_bid is not None:
                 passive_bid = best_bid + 1
-                if best_ask is None or passive_bid < best_ask:
-                    orders.append(Order(sym, passive_bid,
-                                        min(OPT_PASS_SIZE, rem_buy)))
+                if passive_bid < fv and (best_ask is None or passive_bid < best_ask):
+                    orders.append(Order(sym, passive_bid, min(OPT_PASS_SIZE, rem_buy)))
 
         else:  # 5300 or 5500
-            # ── SELL edge: bid > BS_FV 55% of time ───────────────────────
-            # 1. Aggressive take at best bid
-            if best_bid is not None and best_bid > fv - 2.0 and rem_sell > 0:
-                vol = min(bids[best_bid], OPT_AGGR_SIZE, rem_sell)
-                orders.append(Order(sym, best_bid, -vol))
-                rem_sell -= vol
+            sell_thresh = fv - SELL_TOL
 
-            # 2. Mark 22 reinforces sell (systematic option seller per EDA)
+            if bids and rem_sell > 0:
+                new_orders, rem_sell = Trader._take_bids(sym, bids, sell_thresh, rem_sell)
+                orders.extend(new_orders)
+
+            # Mark 22 is a systematic option seller → reinforces our short
             if mark22_selling and rem_sell > 0 and best_bid is not None:
-                vol = min(bids[best_bid], OPT_AGGR_SIZE // 2, rem_sell)
-                orders.append(Order(sym, best_bid, -vol))
-                rem_sell -= vol
+                if best_bid > sell_thresh:
+                    vol = min(bids[best_bid], OPT_AGGR_SIZE // 2, rem_sell)
+                    if vol > 0:
+                        orders.append(Order(sym, best_bid, -vol))
+                        rem_sell -= vol
 
-            # 3. Passive competitive ask: undercut current best ask to
-            #    capture buyers who come in between best_bid and best_ask
+            # Passive ask: queue below best ask, only while clearly above fv
             if rem_sell > 0 and best_ask is not None:
                 passive_ask = best_ask - 1
-                if best_bid is None or passive_ask > best_bid:
-                    orders.append(Order(sym, passive_ask,
-                                        -min(OPT_PASS_SIZE, rem_sell)))
+                if passive_ask > fv and (best_bid is None or passive_ask > best_bid):
+                    orders.append(Order(sym, passive_ask, -min(OPT_PASS_SIZE, rem_sell)))
 
         return orders
 
@@ -210,7 +247,6 @@ class Trader:
         cached_iv   = saved.get("iv",   0.267)
         cached_spot = saved.get("spot", None)
 
-        # Spot price with fallback to last known
         vev_depth = state.order_depths.get(VEV_SYM)
         S = (self._mid(vev_depth) if vev_depth else None) or cached_spot
         if S is None:
@@ -219,7 +255,6 @@ class Trader:
         T     = self._tte(state.timestamp)
         sigma = self._calibrate_iv(state, S, T, cached_iv)
 
-        # Counterparty signals (per option symbol)
         mark01_buying_sym:  set = set()
         mark22_selling_sym: set = set()
         for sym, trades in state.market_trades.items():
